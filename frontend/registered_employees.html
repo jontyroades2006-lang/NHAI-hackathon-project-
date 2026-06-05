@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+    <!-- PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NHAI Auth">
+    <meta name="theme-color" content="#00c8ff">
+    <meta name="description" content="NHAI Employee Face Recognition and Attendance System">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <!-- PWA Service Worker Registration -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("sw.js")
+            .then(reg => console.log("[PWA] Service Worker registered:", reg.scope))
+            .catch(err => console.warn("[PWA] SW registration failed:", err));
+        });
+      }
+    </script>
+<title>Registered Employees — NHAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#0f1628;--border:#1e2d50;--accent:#00c8ff;--accent2:#00ff9d;--warn:#ffb300;--danger:#ff3d5a;--text:#c8d8f0;--dim:#4a5a7a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 48px;background-image:radial-gradient(ellipse at 15% 0%,rgba(0,200,255,.07) 0%,transparent 55%),radial-gradient(ellipse at 85% 100%,rgba(0,255,157,.05) 0%,transparent 55%);}
+header{width:100%;max-width:900px;display:flex;align-items:center;gap:14px;margin-bottom:32px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.logo-emblem{width:42px;height:42px;border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(0,200,255,.3);flex-shrink:0;}
+.logo-emblem span{font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);}
+.logo-text h1{font-size:20px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;line-height:1.1;}
+.logo-text p{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:2px;}
+.header-right{margin-left:auto;text-align:right;}
+#clock{font-family:'Share Tech Mono',monospace;font-size:18px;color:var(--accent);letter-spacing:2px;}
+#date{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:1px;}
+.toolbar{width:100%;max-width:900px;display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.search-box{flex:1;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:3px;padding:10px 14px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:14px;letter-spacing:1px;outline:none;transition:border-color .2s;}
+.search-box:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,200,255,.1);}
+.search-box::placeholder{color:var(--dim);}
+.btn{padding:10px 20px;border:none;border-radius:3px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);}
+.btn-accent{background:linear-gradient(135deg,#00c8ff,#0070b0);color:#0a0e1a;}
+.btn-accent:hover{filter:brightness(1.15);transform:translateY(-1px);}
+#countBadge{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:1px;white-space:nowrap;}
+.card{width:100%;max-width:900px;background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.card-header{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2);}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);box-shadow:0 0 6px var(--accent2);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.card-header span{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:2px;}
+.card-header .tag{margin-left:auto;background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.2);color:var(--accent);padding:2px 8px;border-radius:2px;font-size:10px;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:rgba(0,0,0,.3);border-bottom:2px solid var(--border);}
+th{padding:12px 16px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:2px;text-align:left;text-transform:uppercase;}
+td{padding:13px 16px;border-bottom:1px solid rgba(30,45,80,.6);font-size:14px;font-weight:500;letter-spacing:1px;transition:background .15s;}
+tbody tr:hover td{background:rgba(0,200,255,.04);}
+tbody tr:last-child td{border-bottom:none;}
+.id-badge{font-family:'Share Tech Mono',monospace;font-size:12px;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.15);color:var(--accent);padding:3px 8px;border-radius:2px;display:inline-block;}
+.emp-id{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--accent2);}
+.empty-state{padding:48px;text-align:center;color:var(--dim);font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:2px;}
+.nav-row{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap;justify-content:center;}
+.nav-btn{padding:10px 22px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;text-decoration:none;border:1px solid var(--border);color:var(--text);border-radius:3px;background:var(--panel);clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);transition:all .2s;}
+.nav-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,200,255,.05);}
+.nav-btn.green:hover{border-color:var(--accent2);color:var(--accent2);background:rgba(0,255,157,.05);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-emblem"><span>NH</span></div>
+  <div class="logo-text">
+    <h1>NHAI</h1>
+    <p>REGISTERED EMPLOYEES</p>
+  </div>
+  <div class="header-right">
+    <div id="clock">--:--:--</div>
+    <div id="date">-- --- ----</div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input class="search-box" id="searchBox" type="text" placeholder="Search by name or employee ID...">
+  <span id="countBadge">— RECORDS</span>
+  <button class="btn btn-accent" onclick="loadEmployees()">↺ REFRESH</button>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="dot"></div>
+    <span>EMPLOYEE REGISTRY</span>
+    <span class="tag">READ-ONLY</span>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Employee ID</th>
+        <th>Name</th>
+      </tr>
+    </thead>
+    <tbody id="employeeTable">
+      <tr><td colspan="3" class="empty-state">LOADING RECORDS...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="nav-row">
+  <a href="index.html" class="nav-btn">🏠 HOME</a>
+  <a href="register.html" class="nav-btn green">➕ REGISTER</a>
+  <a href="dashboard.html" class="nav-btn">📊 DASHBOARD</a>
+</div>
+
+<script>
+function updateClock(){
+  const n=new Date();
+  document.getElementById("clock").textContent=n.toLocaleTimeString("en-IN",{hour12:false});
+  document.getElementById("date").textContent=n.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}).toUpperCase();
+}
+setInterval(updateClock,1000);updateClock();
+
+let allData=[];
+
+async function loadEmployees(){
+  const tb=document.getElementById("employeeTable");
+  tb.innerHTML='<tr><td colspan="3" class="empty-state">LOADING...</td></tr>';
+  try{
+    const res=await fetch("http://127.0.0.1:8000/employees");
+    allData=await res.json();
+    renderTable(allData);
+  }catch(e){
+    tb.innerHTML='<tr><td colspan="3" class="empty-state">SERVER OFFLINE — COULD NOT LOAD RECORDS</td></tr>';
+  }
+}
+
+function renderTable(data){
+  const tb=document.getElementById("employeeTable");
+  document.getElementById("countBadge").textContent=data.length+" RECORDS";
+  if(!data.length){
+    tb.innerHTML='<tr><td colspan="3" class="empty-state">NO EMPLOYEES REGISTERED YET</td></tr>';
+    return;
+  }
+  tb.innerHTML=data.map(emp=>`
+    <tr>
+      <td><span class="id-badge">${emp.id}</span></td>
+      <td><span class="emp-id">${emp.employee_id}</span></td>
+      <td>${emp.name}</td>
+    </tr>`).join("");
+}
+
+document.getElementById("searchBox").addEventListener("input",function(){
+  const q=this.value.toLowerCase();
+  renderTable(allData.filter(e=>e.name.toLowerCase().includes(q)||e.employee_id.toLowerCase().includes(q)));
+});
+
+loadEmployees();
+</script>
+</body>
+</html>

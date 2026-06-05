@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Liveness Verification — NHAI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e1a;
+            --panel: #0f1628;
+            --border: #1e2d50;
+            --accent: #00c8ff;
+            --accent2: #00ff9d;
+            --warn: #ffb300;
+            --danger: #ff3d5a;
+            --text: #c8d8f0;
+            --dim: #4a5a7a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+            background-image:
+                radial-gradient(ellipse at 20% 0%, rgba(0,200,255,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 100%, rgba(0,255,157,0.04) 0%, transparent 60%);
+        }
+
+        header {
+            width: 100%;
+            max-width: 860px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nhai-badge {
+            background: linear-gradient(135deg, #00c8ff, #00ff9d);
+            color: #0a0e1a;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            letter-spacing: 2px;
+            clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+        }
+
+        header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #fff;
+        }
+
+        header span {
+            margin-left: auto;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: var(--dim);
+            letter-spacing: 1px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            width: 100%;
+            max-width: 860px;
+        }
+
+        .video-panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: var(--dim);
+            letter-spacing: 1px;
+        }
+
+        .dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--dim);
+        }
+        .dot.active { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); animation: pulse 1.2s infinite; }
+        .dot.warn { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+        .dot.danger { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        canvas#overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            transform: scaleX(-1);
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            animation: scan 3s linear infinite;
+            opacity: 0;
+        }
+        .scan-line.active { opacity: 1; }
+        @keyframes scan { 0%{top:0} 100%{top:100%} }
+
+        .corner {
+            position: absolute;
+            width: 20px; height: 20px;
+            border-color: var(--accent);
+            border-style: solid;
+            opacity: 0.6;
+        }
+        .corner.tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; }
+        .corner.tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; }
+        .corner.bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }
+        .corner.br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .info-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .info-card .panel-header { margin-bottom: 0; }
+
+        .steps {
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            background: rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+
+        .step.done {
+            border-color: var(--accent2);
+            background: rgba(0,255,157,0.05);
+        }
+
+        .step-icon {
+            font-size: 20px;
+            width: 28px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            flex: 1;
+        }
+
+        .step-text strong {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+
+        .step-text span {
+            font-size: 12px;
+            color: var(--dim);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .step-check {
+            color: var(--accent2);
+            font-size: 18px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .step.done .step-check { opacity: 1; }
+
+        /* Status */
+        .status-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        #statusText {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 13px;
+            letter-spacing: 1px;
+            color: var(--dim);
+            line-height: 1.6;
+            min-height: 40px;
+        }
+
+        #statusText.active { color: var(--accent); }
+        #statusText.success { color: var(--accent2); }
+        #statusText.danger { color: var(--danger); }
+
+        /* EAR meter */
+        .meter-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 14px 14px;
+        }
+        .meter-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            color: var(--dim);
+            width: 28px;
+            flex-shrink: 0;
+        }
+        .meter-bar {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .meter-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: width 0.1s, background 0.2s;
+        }
+        .meter-fill.blink { background: var(--warn); }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 3px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+        }
+
+        #startBtn {
+            background: linear-gradient(135deg, #00c8ff, #0080c8);
+            color: #0a0e1a;
+        }
+        #startBtn:hover:not(:disabled) { filter: brightness(1.15); transform: translateY(-1px); }
+        #startBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        #retryBtn {
+            background: linear-gradient(135deg, #ff3d5a, #a01030);
+            color: #fff;
+            display: none;
+        }
+        #retryBtn:hover { filter: brightness(1.1); }
+
+        /* Log */
+        .log-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        #logBox {
+            padding: 10px 12px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: var(--dim);
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.8;
+        }
+
+        #logBox div { border-bottom: 1px solid rgba(255,255,255,0.03); padding: 2px 0; }
+        #logBox .log-ok { color: var(--accent2); }
+        #logBox .log-err { color: var(--danger); }
+        #logBox .log-info { color: var(--accent); }
+
+        .verified-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,255,157,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+        .verified-overlay.show { opacity: 1; }
+        .verified-overlay span {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent2);
+            letter-spacing: 4px;
+            text-shadow: 0 0 20px var(--accent2);
+        }
+
+        @media (max-width: 680px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="nhai-badge">NHAI</div>
+    <h1>Liveness Verification</h1>
+    <span id="clock">--:--:--</span>
+</header>
+
+<div class="main-grid">
+
+    <!-- Left: Video -->
+    <div class="video-panel">
+        <div class="panel-header">
+            <div class="dot" id="camDot"></div>
+            <span id="camLabel">CAMERA OFFLINE</span>
+            <span style="margin-left:auto" id="fpsLabel">0 FPS</span>
+        </div>
+        <div class="video-container">
+            <video id="video" autoplay playsinline muted></video>
+            <canvas id="overlay"></canvas>
+            <div class="scan-line" id="scanLine"></div>
+            <div class="corner tl"></div>
+            <div class="corner tr"></div>
+            <div class="corner bl"></div>
+            <div class="corner br"></div>
+            <div class="verified-overlay" id="verifiedOverlay">
+                <span>✓ VERIFIED</span>
+            </div>
+        </div>
+        <div class="meter-row">
+            <span class="meter-label">EAR</span>
+            <div class="meter-bar">
+                <div class="meter-fill" id="earMeter"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Controls -->
+    <div class="side-panel">
+
+        <div class="info-card">
+            <div class="panel-header">
+                <div class="dot"></div>
+                <span>VERIFICATION STEPS</span>
+            </div>
+            <div class="steps">
+                <div class="step" id="step-blink">
+                    <div class="step-icon">👁️</div>
+                    <div class="step-text">
+                        <strong>BLINK</strong>
+                        <span>Close both eyes briefly</span>
+                    </div>
+                    <div class="step-check">✓</div>
+                </div>
+                <div class="step" id="step-head">
+                    <div class="step-icon">↔️</div>
+                    <div class="step-text">
+                        <strong>HEAD TURN</strong>
+                        <span>Turn left or right</span>
+                    </div>
+                    <div class="step-check">✓</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <div id="statusText">Press START to begin liveness check</div>
+        </div>
+
+        <button class="btn" id="startBtn" onclick="startCheck()">▶ START</button>
+        <button class="btn" id="retryBtn" onclick="resetCheck()">↺ RETRY</button>
+
+        <div class="log-card">
+            <div class="panel-header">
+                <div class="dot"></div>
+                <span>SYSTEM LOG</span>
+            </div>
+            <div id="logBox"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ── Clock ──────────────────────────────────────────────
+setInterval(() => {
+    document.getElementById("clock").textContent =
+        new Date().toLocaleTimeString("en-IN", {hour12: false});
+}, 1000);
+
+// ── State ──────────────────────────────────────────────
+let ws         = null;
+let stream     = null;
+let capturing  = false;
+let completed  = false;
+let frameCount = 0;
+let lastFps    = Date.now();
+
+const WS_URL = "ws://127.0.0.1:8000/ws/liveness";
+const FPS    = 10; // frames per second to send
+
+// ── Log ────────────────────────────────────────────────
+function log(msg, type = "") {
+    const box = document.getElementById("logBox");
+    const d   = document.createElement("div");
+    d.className = type ? `log-${type}` : "";
+    const t = new Date().toLocaleTimeString("en-IN", {hour12: false});
+    d.textContent = `[${t}] ${msg}`;
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+}
+
+function setStatus(msg, cls = "") {
+    const el = document.getElementById("statusText");
+    el.textContent = msg;
+    el.className   = cls;
+}
+
+function markStep(id) {
+    document.getElementById(id).classList.add("done");
+}
+
+// ── Start ──────────────────────────────────────────────
+async function startCheck() {
+    document.getElementById("startBtn").disabled = true;
+    setStatus("Requesting camera access...", "active");
+    log("Initializing camera...", "info");
+
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 480, height: 360, facingMode: "user" },
+            audio: false
+        });
+    } catch (e) {
+        setStatus("Camera access denied!", "danger");
+        log("Camera error: " + e.message, "err");
+        document.getElementById("startBtn").disabled = false;
+        return;
+    }
+
+    const video = document.getElementById("video");
+    video.srcObject = stream;
+    await new Promise(r => video.onloadedmetadata = r);
+    video.play();
+
+    // Camera dot
+    document.getElementById("camDot").className = "dot active";
+    document.getElementById("camLabel").textContent = "CAMERA LIVE";
+    document.getElementById("scanLine").classList.add("active");
+
+    log("Camera started", "ok");
+    log("Connecting to server...", "info");
+    setStatus("Connecting to server...", "active");
+
+    // WebSocket
+    ws = new WebSocket(WS_URL);
+    ws.binaryType = "arraybuffer";
+
+    ws.onopen = () => {
+        log("WebSocket connected", "ok");
+        setStatus("Look at camera — blink and turn head", "active");
+        capturing = true;
+        requestAnimationFrame(sendLoop);
+    };
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            handleServerResponse(data);
+        } catch (e) {
+            log("Parse error: " + e.message, "err");
+        }
+    };
+
+    ws.onerror = () => {
+        log("WebSocket error", "err");
+        setStatus("Connection error — is server running?", "danger");
+    };
+
+    ws.onclose = () => {
+        if (!completed) {
+            log("Connection closed", "err");
+        }
+        capturing = false;
+    };
+}
+
+// ── Frame sending loop ─────────────────────────────────
+const canvas2d = document.createElement("canvas");
+const ctx2d    = canvas2d.getContext("2d");
+
+let lastSend = 0;
+
+function sendLoop(ts) {
+    if (!capturing) return;
+
+    const interval = 1000 / FPS;
+    if (ts - lastSend >= interval) {
+        lastSend = ts;
+        sendFrame();
+
+        // FPS counter
+        frameCount++;
+        if (Date.now() - lastFps >= 1000) {
+            document.getElementById("fpsLabel").textContent = frameCount + " FPS";
+            frameCount = 0;
+            lastFps = Date.now();
+        }
+    }
+
+    requestAnimationFrame(sendLoop);
+}
+
+function sendFrame() {
+    const video = document.getElementById("video");
+    if (!video.videoWidth) return;
+
+    canvas2d.width  = video.videoWidth;
+    canvas2d.height = video.videoHeight;
+
+    // Draw mirrored frame (undo CSS mirror for server)
+    ctx2d.save();
+    ctx2d.scale(-1, 1);
+    ctx2d.drawImage(video, -canvas2d.width, 0);
+    ctx2d.restore();
+
+    canvas2d.toBlob(blob => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            blob.arrayBuffer().then(buf => ws.send(buf));
+        }
+    }, "image/jpeg", 0.7);
+}
+
+// ── Handle server response ─────────────────────────────
+function handleServerResponse(data) {
+    // EAR meter
+    if (data.ear !== undefined) {
+        const pct = Math.min(100, (data.ear / 0.40) * 100);
+        const fill = document.getElementById("earMeter");
+        fill.style.width = pct + "%";
+        fill.className = "meter-fill" + (data.ear < 0.20 ? " blink" : "");
+    }
+
+    // Steps
+    if (data.blink_verified) markStep("step-blink");
+    if (data.head_verified)  markStep("step-head");
+
+    // Status message
+    if (!data.blink_verified && !data.head_verified) {
+        setStatus("👁 Blink your eyes  ↔ Turn your head", "active");
+    } else if (!data.blink_verified) {
+        setStatus("👁 Now blink your eyes", "active");
+    } else if (!data.head_verified) {
+        setStatus("↔ Now turn your head left or right", "active");
+    }
+
+    // Face detection
+    if (data.face_detected === false) {
+        setStatus("No face detected — look at camera", "danger");
+    }
+
+    // Verified!
+    if (data.status === "verified" && !completed) {
+        completed = true;
+        capturing = false;
+        ws.close();
+
+        document.getElementById("verifiedOverlay").classList.add("show");
+        document.getElementById("camDot").className = "dot";
+        document.getElementById("scanLine").classList.remove("active");
+
+        setStatus("✓ LIVENESS VERIFIED", "success");
+        log("Liveness verified successfully!", "ok");
+        document.getElementById("retryBtn").style.display = "block";
+
+        // Stop camera
+        if (stream) stream.getTracks().forEach(t => t.stop());
+    }
+}
+
+// ── Reset ──────────────────────────────────────────────
+function resetCheck() {
+    completed = false;
+    capturing = false;
+
+    if (ws)     { ws.close(); ws = null; }
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+
+    document.getElementById("video").srcObject = null;
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("retryBtn").style.display = "none";
+    document.getElementById("verifiedOverlay").classList.remove("show");
+    document.getElementById("camDot").className = "dot";
+    document.getElementById("camLabel").textContent = "CAMERA OFFLINE";
+    document.getElementById("fpsLabel").textContent = "0 FPS";
+    document.getElementById("scanLine").classList.remove("active");
+    document.getElementById("earMeter").style.width = "0%";
+    document.getElementById("step-blink").classList.remove("done");
+    document.getElementById("step-head").classList.remove("done");
+    document.getElementById("logBox").innerHTML = "";
+
+    setStatus("Press START to begin liveness check", "");
+    log("System reset", "info");
+}
+</script>
+
+</body>
+</html>

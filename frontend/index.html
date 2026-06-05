@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#00c8ff">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-152.png">
+  <script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
+  }
+</script>
+<meta charset="UTF-8">
+    <!-- PWA Meta Tags -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NHAI Auth">
+    <meta name="theme-color" content="#00c8ff">
+    <meta name="description" content="NHAI Employee Face Recognition and Attendance System">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <!-- PWA Service Worker Registration -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("sw.js")
+            .then(reg => console.log("[PWA] Service Worker registered:", reg.scope))
+            .catch(err => console.warn("[PWA] SW registration failed:", err));
+        });
+      }
+    </script>
+<title>NHAI — Mark Attendance</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--panel:#0f1628;--border:#1e2d50;--accent:#00c8ff;--accent2:#00ff9d;--warn:#ffb300;--danger:#ff3d5a;--text:#c8d8f0;--dim:#4a5a7a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px 48px;background-image:radial-gradient(ellipse at 15% 0%,rgba(0,200,255,.07) 0%,transparent 55%),radial-gradient(ellipse at 85% 100%,rgba(0,255,157,.05) 0%,transparent 55%);}
+header{width:100%;max-width:900px;display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.logo-emblem{width:42px;height:42px;border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(0,200,255,.3);flex-shrink:0;position:relative;}
+.logo-emblem::before{content:'';position:absolute;inset:4px;border-radius:50%;border:1px solid rgba(0,200,255,.3);}
+.logo-emblem span{font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:700;color:var(--accent);}
+.logo-text h1{font-size:20px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#fff;line-height:1.1;}
+.logo-text p{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:2px;}
+.header-right{margin-left:auto;text-align:right;}
+#clock{font-family:'Share Tech Mono',monospace;font-size:18px;color:var(--accent);letter-spacing:2px;}
+#date{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:1px;}
+
+/* Flow Steps */
+.flow-steps{display:flex;align-items:center;gap:0;margin-bottom:24px;width:100%;max-width:900px;}
+.flow-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;}
+.flow-step:not(:last-child)::after{content:'';position:absolute;right:0;top:18px;width:50%;height:2px;background:var(--border);z-index:0;}
+.flow-step:not(:first-child)::before{content:'';position:absolute;left:0;top:18px;width:50%;height:2px;background:var(--border);z-index:0;}
+.flow-step.done:not(:last-child)::after{background:var(--accent2);}
+.flow-step.done:not(:first-child)::before,.flow-step.active:not(:first-child)::before{background:var(--accent2);}
+.step-circle{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:13px;font-weight:700;background:var(--panel);z-index:1;transition:all .3s;color:var(--dim);}
+.flow-step.active .step-circle{border-color:var(--accent);color:var(--accent);box-shadow:0 0 10px rgba(0,200,255,.3);}
+.flow-step.done .step-circle{border-color:var(--accent2);background:rgba(0,255,157,.1);color:var(--accent2);box-shadow:0 0 10px rgba(0,255,157,.2);}
+.step-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;}
+.flow-step.active .step-label{color:var(--accent);}
+.flow-step.done .step-label{color:var(--accent2);}
+
+/* Main Grid */
+.main-grid{display:grid;grid-template-columns:1fr 320px;gap:18px;width:100%;max-width:900px;}
+
+/* Video Panel */
+.video-panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.panel-header{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2);}
+.panel-header span{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:2px;}
+.panel-header .tag{margin-left:auto;padding:2px 8px;border-radius:2px;font-size:10px;font-family:'Share Tech Mono',monospace;}
+.tag-live{background:rgba(0,255,157,.1);border:1px solid rgba(0,255,157,.2);color:var(--accent2);}
+.tag-off{background:rgba(74,90,122,.1);border:1px solid var(--border);color:var(--dim);}
+.video-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#000;}
+video{width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1);}
+canvas#overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;transform:scaleX(-1);}
+.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:scan 2.5s linear infinite;opacity:0;}
+.scan-line.active{opacity:1;}
+@keyframes scan{0%{top:0}100%{top:100%}}
+.corner{position:absolute;width:18px;height:18px;border-color:var(--accent);border-style:solid;opacity:.5;}
+.corner.tl{top:8px;left:8px;border-width:2px 0 0 2px;}
+.corner.tr{top:8px;right:8px;border-width:2px 2px 0 0;}
+.corner.bl{bottom:8px;left:8px;border-width:0 0 2px 2px;}
+.corner.br{bottom:8px;right:8px;border-width:0 2px 2px 0;}
+.verified-overlay{position:absolute;inset:0;background:rgba(0,255,157,.07);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .5s;pointer-events:none;}
+.verified-overlay.show{opacity:1;}
+.verified-overlay span{font-size:26px;font-weight:700;color:var(--accent2);letter-spacing:4px;text-shadow:0 0 20px var(--accent2);}
+.ear-row{display:flex;align-items:center;gap:8px;padding:8px 14px;}
+.ear-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);width:28px;}
+.ear-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.ear-fill{height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width .1s,background .2s;}
+.ear-fill.blink{background:var(--warn);}
+
+/* Side Panel */
+.side-panel{display:flex;flex-direction:column;gap:14px;}
+
+.info-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim);}
+.dot.green{background:var(--accent2);box-shadow:0 0 6px var(--accent2);animation:blink 1.5s infinite;}
+.dot.blue{background:var(--accent);box-shadow:0 0 6px var(--accent);animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.steps-body{padding:12px;}
+.step-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--border);border-radius:3px;background:rgba(0,0,0,.2);margin-bottom:8px;transition:all .3s;}
+.step-item:last-child{margin-bottom:0;}
+.step-item.done{border-color:var(--accent2);background:rgba(0,255,157,.05);}
+.step-item.active-step{border-color:var(--accent);background:rgba(0,200,255,.05);}
+.si-icon{font-size:18px;width:24px;text-align:center;flex-shrink:0;}
+.si-text strong{display:block;font-size:13px;font-weight:700;color:#fff;letter-spacing:1px;}
+.si-text span{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);}
+.si-check{margin-left:auto;color:var(--accent2);font-size:16px;opacity:0;transition:opacity .3s;}
+.step-item.done .si-check{opacity:1;}
+
+.status-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px;text-align:center;}
+#statusText{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:1px;color:var(--dim);line-height:1.7;min-height:38px;}
+#statusText.active{color:var(--accent);}
+#statusText.success{color:var(--accent2);}
+#statusText.danger{color:var(--danger);}
+#statusText.warn{color:var(--warn);}
+
+/* Result Card */
+.result-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;display:none;}
+.result-card.show{display:block;}
+.result-card-header{padding:10px 14px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.result-card-header.success{background:rgba(0,255,157,.08);color:var(--accent2);border-color:rgba(0,255,157,.2);}
+.result-card-header.failed{background:rgba(255,61,90,.08);color:var(--danger);border-color:rgba(255,61,90,.2);}
+.result-card-header.warn{background:rgba(255,179,0,.08);color:var(--warn);border-color:rgba(255,179,0,.2);}
+.result-card-body{padding:14px;}
+.r-name{font-size:20px;font-weight:700;letter-spacing:3px;color:#fff;margin-bottom:4px;}
+.r-meta{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:1px;}
+
+/* Buttons */
+.btn{width:100%;padding:13px;border:none;border-radius:3px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);transition:all .2s;}
+.btn-blue{background:linear-gradient(135deg,#00c8ff,#0070b0);color:#0a0e1a;}
+.btn-blue:hover:not(:disabled){filter:brightness(1.15);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,200,255,.3);}
+.btn-blue:disabled{opacity:.4;cursor:not-allowed;}
+.btn-blue.loading{background:linear-gradient(135deg,#004060,#002040);color:var(--accent);cursor:wait;}
+.btn-red{background:linear-gradient(135deg,#ff3d5a,#a01030);color:#fff;display:none;}
+.btn-red:hover{filter:brightness(1.1);}
+
+/* Log */
+.log-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;flex:1;}
+#logBox{padding:8px 12px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);max-height:100px;overflow-y:auto;line-height:1.9;}
+#logBox div{border-bottom:1px solid rgba(255,255,255,.03);padding:1px 0;}
+.log-ok{color:var(--accent2)!important;}
+.log-err{color:var(--danger)!important;}
+.log-info{color:var(--accent)!important;}
+.log-warn{color:var(--warn)!important;}
+
+/* Nav */
+.nav-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:900px;margin-top:20px;}
+.nav-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px 16px;text-decoration:none;transition:all .2s;display:flex;align-items:center;gap:12px;}
+.nav-card:hover{border-color:var(--accent);background:rgba(0,200,255,.04);transform:translateY(-2px);}
+.nav-card.green:hover{border-color:var(--accent2);background:rgba(0,255,157,.04);}
+.nav-card.orange:hover{border-color:var(--warn);background:rgba(255,179,0,.04);}
+.nav-icon{font-size:20px;}
+.nav-card-text strong{display:block;font-size:14px;font-weight:700;letter-spacing:2px;color:#fff;text-transform:uppercase;}
+.nav-card-text span{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:1px;}
+
+@media(max-width:680px){.main-grid{grid-template-columns:1fr;}.nav-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-emblem"><span>NH</span></div>
+  <div class="logo-text">
+    <h1>NHAI</h1>
+    <p>ATTENDANCE SYSTEM</p>
+  </div>
+  <div class="header-right">
+    <div id="clock">--:--:--</div>
+    <div id="date">-- --- ----</div>
+  </div>
+</header>
+
+<!-- Flow Progress -->
+<div class="flow-steps" id="flowSteps">
+  <div class="flow-step active" id="fs1">
+    <div class="step-circle">1</div>
+    <div class="step-label">Liveness</div>
+  </div>
+  <div class="flow-step" id="fs2">
+    <div class="step-circle">2</div>
+    <div class="step-label">Recognition</div>
+  </div>
+  <div class="flow-step" id="fs3">
+    <div class="step-circle">3</div>
+    <div class="step-label">Attendance</div>
+  </div>
+</div>
+
+<div class="main-grid">
+
+  <!-- Video -->
+  <div class="video-panel">
+    <div class="panel-header">
+      <div class="dot" id="camDot"></div>
+      <span id="camLabel">CAMERA OFFLINE</span>
+      <span class="tag tag-off" id="fpsTag">0 FPS</span>
+    </div>
+    <div class="video-wrap">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="overlay"></canvas>
+      <div class="scan-line" id="scanLine"></div>
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+      <div class="verified-overlay" id="verifiedOverlay"><span>✓ VERIFIED</span></div>
+    </div>
+    <div class="ear-row">
+      <span class="ear-label">EAR</span>
+      <div class="ear-bar"><div class="ear-fill" id="earFill"></div></div>
+    </div>
+  </div>
+
+  <!-- Side -->
+  <div class="side-panel">
+
+    <div class="info-card">
+      <div class="panel-header">
+        <div class="dot" id="sideDot"></div>
+        <span>VERIFICATION STEPS</span>
+      </div>
+      <div class="steps-body">
+        <div class="step-item active-step" id="stepBlink">
+          <div class="si-icon">👁️</div>
+          <div class="si-text">
+            <strong>BLINK</strong>
+            <span>Close both eyes briefly</span>
+          </div>
+          <div class="si-check">✓</div>
+        </div>
+        <div class="step-item" id="stepHead">
+          <div class="si-icon">↔️</div>
+          <div class="si-text">
+            <strong>HEAD TURN</strong>
+            <span>Turn left or right</span>
+          </div>
+          <div class="si-check">✓</div>
+        </div>
+        <div class="step-item" id="stepFace">
+          <div class="si-icon">🧠</div>
+          <div class="si-text">
+            <strong>RECOGNITION</strong>
+            <span>Face matching in DB</span>
+          </div>
+          <div class="si-check">✓</div>
+        </div>
+        <div class="step-item" id="stepAttend">
+          <div class="si-icon">✅</div>
+          <div class="si-text">
+            <strong>ATTENDANCE</strong>
+            <span>Record saved</span>
+          </div>
+          <div class="si-check">✓</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-card">
+      <div id="statusText">Press START to begin</div>
+    </div>
+
+    <div class="result-card" id="resultCard">
+      <div class="result-card-header" id="resultHeader">
+        <span id="resultIcon">●</span>
+        <span id="resultTitle">RESULT</span>
+      </div>
+      <div class="result-card-body">
+        <div class="r-name" id="resultName"></div>
+        <div class="r-meta" id="resultMeta"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-blue" id="startBtn" onclick="startCheck()">▶ START CHECK</button>
+    <button class="btn btn-red"  id="retryBtn" onclick="resetCheck()">↺ RETRY</button>
+
+    <div class="log-card">
+      <div class="panel-header">
+        <div class="dot"></div>
+        <span>SYSTEM LOG</span>
+      </div>
+      <div id="logBox"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Nav -->
+<div class="nav-grid">
+  <a href="register.html" class="nav-card green">
+    <div class="nav-icon">➕</div>
+    <div class="nav-card-text"><strong>Register</strong><span>Enrol new employee</span></div>
+  </a>
+  <a href="dashboard.html" class="nav-card">
+    <div class="nav-icon">📊</div>
+    <div class="nav-card-text"><strong>Dashboard</strong><span>View attendance log</span></div>
+  </a>
+  <a href="registered_employees.html" class="nav-card orange">
+    <div class="nav-icon">👥</div>
+    <div class="nav-card-text"><strong>Employees</strong><span>View all staff</span></div>
+  </a>
+</div>
+
+<script>
+// ── Clock ──────────────────────────────────────────────
+function updateClock(){
+  const n=new Date();
+  document.getElementById("clock").textContent=n.toLocaleTimeString("en-IN",{hour12:false});
+  document.getElementById("date").textContent=n.toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}).toUpperCase();
+}
+setInterval(updateClock,1000);updateClock();
+
+// ── State ──────────────────────────────────────────────
+let ws=null, stream=null, capturing=false, completed=false;
+let frameCount=0, lastFps=Date.now();
+const WS_URL="ws://10.142.200.236:8000/ws/liveness";
+const FPS=10;
+
+// ── Helpers ────────────────────────────────────────────
+function log(msg,type=""){
+  const box=document.getElementById("logBox");
+  const d=document.createElement("div");
+  if(type)d.className="log-"+type;
+  const t=new Date().toLocaleTimeString("en-IN",{hour12:false});
+  d.textContent=`[${t}] ${msg}`;
+  box.appendChild(d);box.scrollTop=box.scrollHeight;
+}
+function setStatus(msg,cls=""){
+  const el=document.getElementById("statusText");
+  el.textContent=msg;el.className=cls;
+}
+function markFlowStep(id){document.getElementById(id).classList.add("done");}
+function setFlowActive(id){
+  ["fs1","fs2","fs3"].forEach(s=>document.getElementById(s).classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+function markSideStep(id){
+  const el=document.getElementById(id);
+  el.classList.remove("active-step");el.classList.add("done");
+}
+
+// ── Start ──────────────────────────────────────────────
+async function startCheck(){
+  document.getElementById("startBtn").disabled=true;
+  setStatus("Requesting camera..","active");
+  log("Initialising camera..","info");
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:480,height:360,facingMode:"user"},audio:false});
+  }catch(e){
+    setStatus("Camera denied!","danger");log("Camera error: "+e.message,"err");
+    document.getElementById("startBtn").disabled=false;return;
+  }
+  const video=document.getElementById("video");
+  video.srcObject=stream;
+  await new Promise(r=>video.onloadedmetadata=r);
+  video.play();
+  document.getElementById("camDot").className="dot green";
+  document.getElementById("camLabel").textContent="CAMERA LIVE";
+  document.getElementById("fpsTag").className="tag tag-live";
+  document.getElementById("scanLine").classList.add("active");
+  document.getElementById("sideDot").className="dot blue";
+  log("Camera started","ok");
+  log("Connecting to server..","info");
+  setStatus("Connecting to server..","active");
+
+  ws=new WebSocket(WS_URL);
+  ws.binaryType="arraybuffer";
+
+  ws.onopen=()=>{
+    log("WebSocket connected","ok");
+    setStatus("👁 Blink your eyes  ↔ Turn your head","active");
+    capturing=true;
+    requestAnimationFrame(sendLoop);
+  };
+
+  ws.onmessage=(event)=>{
+    try{const data=JSON.parse(event.data);handleResponse(data);}
+    catch(e){log("Parse error: "+e.message,"err");}
+  };
+
+  ws.onerror=()=>{
+    log("WebSocket error — is server running?","err");
+    setStatus("Connection error","danger");
+  };
+
+  ws.onclose=()=>{capturing=false;if(!completed)log("Connection closed","err");};
+}
+
+// ── Frame Loop ─────────────────────────────────────────
+const cvs2=document.createElement("canvas");
+const c2=cvs2.getContext("2d");
+let lastSend=0;
+
+function sendLoop(ts){
+  if(!capturing)return;
+  if(ts-lastSend>=1000/FPS){
+    lastSend=ts;
+    const video=document.getElementById("video");
+    if(video.videoWidth){
+      cvs2.width=video.videoWidth;cvs2.height=video.videoHeight;
+      c2.save();c2.scale(-1,1);c2.drawImage(video,-cvs2.width,0);c2.restore();
+      cvs2.toBlob(blob=>{
+        if(ws&&ws.readyState===WebSocket.OPEN)blob.arrayBuffer().then(buf=>ws.send(buf));
+      },"image/jpeg",0.7);
+    }
+    frameCount++;
+    if(Date.now()-lastFps>=1000){
+      document.getElementById("fpsTag").textContent=frameCount+" FPS";
+      frameCount=0;lastFps=Date.now();
+    }
+  }
+  requestAnimationFrame(sendLoop);
+}
+
+// ── Handle Response ────────────────────────────────────
+function handleResponse(data){
+  if(completed)return;
+
+  // EAR meter
+  if(data.ear!==undefined){
+    const pct=Math.min(100,(data.ear/0.40)*100);
+    const fill=document.getElementById("earFill");
+    fill.style.width=pct+"%";
+    fill.className="ear-fill"+(data.ear<0.20?" blink":"");
+  }
+
+  // Liveness steps
+  if(data.blink_verified){markSideStep("stepBlink");document.getElementById("stepHead").classList.add("active-step");}
+  if(data.head_verified) {markSideStep("stepHead"); document.getElementById("stepFace").classList.add("active-step");}
+
+  if(!data.blink_verified&&!data.head_verified) setStatus("👁 Blink  ↔ Turn head","active");
+  else if(!data.blink_verified) setStatus("👁 Now blink your eyes","active");
+  else if(!data.head_verified)  setStatus("↔ Turn head left or right","active");
+
+  if(data.face_detected===false) setStatus("No face detected — look at camera","danger");
+
+  // Liveness verified → recognition result
+  if(data.status==="verified"&&!completed){
+    completed=true;capturing=false;
+    ws.close();
+    document.getElementById("verifiedOverlay").classList.add("show");
+    document.getElementById("scanLine").classList.remove("active");
+    document.getElementById("camDot").className="dot";
+    markFlowStep("fs1");setFlowActive("fs2");
+    log("Liveness verified","ok");
+    setStatus("🧠 Recognising face..","warn");
+
+    setTimeout(()=>{
+      // Recognition + attendance result comes from same WS message
+      if(data.attendance==="marked"){
+        markSideStep("stepFace");
+        markSideStep("stepAttend");
+        markFlowStep("fs2");
+        markFlowStep("fs3");
+        setFlowActive("fs3");
+        setStatus("✓ Attendance Marked!","success");
+        log("Recognised: "+data.user,"ok");
+        log("Attendance marked for "+data.user,"ok");
+
+        const rc=document.getElementById("resultCard");
+        rc.classList.add("show");
+        document.getElementById("resultHeader").className="result-card-header success";
+        document.getElementById("resultIcon").textContent="✓";
+        document.getElementById("resultTitle").textContent="ATTENDANCE MARKED";
+        document.getElementById("resultName").textContent=data.user;
+        document.getElementById("resultMeta").textContent="VERIFIED · "+new Date().toLocaleTimeString("en-IN",{hour12:false});
+
+      }else if(data.attendance==="unknown"){
+        markSideStep("stepFace");
+        setStatus("Face not recognised","danger");
+        log("Face not recognised — not registered","warn");
+
+        const rc=document.getElementById("resultCard");
+        rc.classList.add("show");
+        document.getElementById("resultHeader").className="result-card-header failed";
+        document.getElementById("resultIcon").textContent="✗";
+        document.getElementById("resultTitle").textContent="NOT RECOGNISED";
+        document.getElementById("resultName").textContent="UNKNOWN";
+        document.getElementById("resultMeta").textContent=data.attendance_msg;
+      }
+
+      document.getElementById("retryBtn").style.display="block";
+      if(stream)stream.getTracks().forEach(t=>t.stop());
+    },600);
+  }
+}
+
+// ── Reset ──────────────────────────────────────────────
+function resetCheck(){
+  completed=false;capturing=false;
+  if(ws){ws.close();ws=null;}
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+
+  document.getElementById("video").srcObject=null;
+  document.getElementById("startBtn").disabled=false;
+  document.getElementById("retryBtn").style.display="none";
+  document.getElementById("verifiedOverlay").classList.remove("show");
+  document.getElementById("camDot").className="dot";
+  document.getElementById("sideDot").className="dot";
+  document.getElementById("camLabel").textContent="CAMERA OFFLINE";
+  document.getElementById("fpsTag").className="tag tag-off";
+  document.getElementById("fpsTag").textContent="0 FPS";
+  document.getElementById("scanLine").classList.remove("active");
+  document.getElementById("earFill").style.width="0%";
+  document.getElementById("logBox").innerHTML="";
+  document.getElementById("resultCard").classList.remove("show");
+
+  ["stepBlink","stepHead","stepFace","stepAttend"].forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.remove("done","active-step");
+  });
+  document.getElementById("stepBlink").classList.add("active-step");
+
+  ["fs1","fs2","fs3"].forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.remove("done","active");
+  });
+  document.getElementById("fs1").classList.add("active");
+
+  setStatus("Press START to begin","");
+  log("System reset","info");
+}
+</script>
+</body>
+</html>

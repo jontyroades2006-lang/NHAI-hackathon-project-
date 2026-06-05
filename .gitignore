@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+
+# Database
+attendance.db
+
+# Uploaded Images
+uploads/
+
+# Python Virtual Environment
+venv/
+.env
+
+# Model Files
+*.pkl
+*.h5
+*.pt
+*.pth
+
+# VS Code
+.vscode/
