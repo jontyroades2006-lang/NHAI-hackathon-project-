@@ -210,47 +210,6 @@ NHAI-HACKATHON
 - Offline Authentication
 - Secure API Communication
 
----
-
-# Screenshots
-
-## Home Screen
-
-Add Screenshot Here
-
----
-
-## Employee Registration
-
-Add Screenshot Here
-
----
-
-## Liveness Verification
-
-Add Screenshot Here
-
----
-
-## Attendance Dashboard
-
-Add Screenshot Here
-
----
-
-# Installation
-
-## Clone Repository
-
-```bash
-git clone https://github.com/jontyroades2006-lang/NHAI-hackathon-project-.git
-```
-
-## Navigate
-
-```bash
-cd NHAI-hackathon-project-
-```
 
 ## Install Backend Dependencies
 
@@ -297,7 +256,7 @@ python -m http.server 5500
 | Metric | Value |
 |----------|----------|
 | Recognition Accuracy | 95%+ |
-| Authentication Time | < 2 Seconds |
+| Authentication Time | < 3 Seconds |
 | Attendance Marking | Real-Time |
 | Platform Support | Web + Android + iOS |
 | Offline Support | Yes |
@@ -309,7 +268,7 @@ python -m http.server 5500
 ### Gaurav Sharma
 National Institute of Technology Rourkela
 
-AI/ML Developer | Full Stack Developer
+AI/ML Developer 
 
 ---
 
