@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+python-multipart
+numpy==1.26.4
+opencv-python-headless
+face-recognition
+mediapipe
+scipy
